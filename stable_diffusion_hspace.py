@@ -288,7 +288,7 @@ class StableDiffusionPipelineHspace(StableDiffusionPipeline):
             generator,
             latents,
         )
-
+        # breakpoint()
         # 6. Prepare extra step kwargs. TODO: Logic should ideally just be moved out of the pipeline
         extra_step_kwargs = self.prepare_extra_step_kwargs(generator, eta)
 
@@ -311,7 +311,7 @@ class StableDiffusionPipelineHspace(StableDiffusionPipeline):
                 latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
 
                 # predict the noise residual
-                #breakpoint()
+                # breakpoint()
                 noise_pred, h_space_t = self.unet(
                     latent_model_input,
                     t,
