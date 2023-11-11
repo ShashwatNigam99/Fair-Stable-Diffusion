@@ -3,8 +3,8 @@ from unet_hspace import UNet2DConditionModelHSpace
 import torch
 from xformers.ops import MemoryEfficientAttentionFlashAttentionOp
 from pathlib import Path
-from utils import save_images
-
+from utils import save_images_and_hspace
+import time
 PATH = "/home/hice1/mnigam9/scratch/cache/stable-diffusion-v1-4"
 PATH = Path(PATH).expanduser()
 
@@ -42,20 +42,44 @@ def setup_hspace_stable_diffusion(PATH):
     
     return hspace_pipe
 
+CONFIG = {
+    "prompts": ["Photo portrait of a doctor", "Photo portrait of a teacher", "Photo portrait of a lawyer"],    
+    "num_inference_steps": 50,
+    "num_images_per_prompt": 5,
+    "classifier_free_guidance": True
+}
+
+def get_config():
+    CONFIG["latent_dims"] = 1
+    if CONFIG["classifier_free_guidance"]:
+        CONFIG["latent_dims"] = 2    
+    return CONFIG
+
 if __name__=="__main__":
     hspace_pipe = setup_hspace_stable_diffusion(PATH)
-    prompts = ["A photo of a cat", "A photo of a dog", "A photo of a bird"]
-    
+    config = get_config()
     # images here is of type StableDiffusionPipelineOutput. To access images, use images.images
+    start = time.time()
     images, hspace = hspace_pipe(
-        prompt = prompts,
-        num_inference_steps = 20    
+        prompt = config["prompts"],
+        num_inference_steps = config["num_inference_steps"],
+        num_images_per_prompt = config["num_images_per_prompt"]    
     )
+    end = time.time()
+    print("Time taken: ", end-start)
     
-    breakpoint()
+    # breakpoint()
+    print("CONFIG: ", config)
+    print("Number of images: ", len(images.images))
+    print("Hspace dimension: ", hspace.shape)
     
-    save_images(images.images, save_path="./outputs/images/", prefix="image", print_path=True)
-    
+    save_images_and_hspace(
+        images.images, 
+        hspace, 
+        config["latent_dims"],
+        save_path="./outputs/",
+        print_path=False
+    )
     
     
     
