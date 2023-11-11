@@ -5,6 +5,9 @@ Usage:
     conda env create -f environment.yml
     conda activate fairdiff
     python pipeline.py
+    # this will create ./outputs folder containing images/ and hspace/ folders
+    python classification.py
+    # this will classify all images generated in ./outputs/images/ and create a csv annotations file
 ```
 
 ## Baseline
