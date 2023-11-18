@@ -20,3 +20,9 @@ https://github.com/serengil/deepface (subject to change)
 https://huggingface.co/runwayml/stable-diffusion-v1-5
 
 
+
+## Fair Diffusion Baseline
+
+in `fair_diffusion/`, run  `pipeline.py` and defining the occupation in the function `gen_occupation_face()`.
+
+
