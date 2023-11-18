@@ -16,8 +16,8 @@ OUTPUTS = Path(OUTPUTS).expanduser()
 required_parameters = ['age', 'dominant_race', 'dominant_gender']
 
 if __name__ == "__main__":
-    os.environ.setdefault("DEEPFACE_HOME", "/home/hice1/mnigam9/scratch/cache")
-    Path("/home/hice1/mnigam9/scratch/cache/.deepface/weights").mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("DEEPFACE_HOME", "/scratch/cache")
+    Path("/scratch/cache/.deepface/weights").mkdir(parents=True, exist_ok=True)
     
     output = []
     output.append(required_parameters+['image_path'])
