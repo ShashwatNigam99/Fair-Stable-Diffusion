@@ -10,12 +10,12 @@ def classify(img_path):
     )
     return objs
 
-def classifier():
+def classifier(output_path="/home/okara7/Desktop/Fair-Stable-Diffusion/outputs/images"):
     required_parameters = ['age', 'dominant_race', 'dominant_gender']
     os.environ.setdefault("DEEPFACE_HOME", "/home/okara7/Desktop/Fair-Stable-Diffusion")
     local_path = ""
     Path(f'{local_path}.deepface/weights').mkdir(parents=True, exist_ok=True)
-    OUTPUTS = "/home/okara7/Desktop/Fair-Stable-Diffusion/outputs/images"
+    OUTPUTS = output_path
     OUTPUTS = Path(OUTPUTS).expanduser()
     output = []
     output.append(required_parameters+['image_path'])
