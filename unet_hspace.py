@@ -90,9 +90,14 @@ class DeltaBlock(torch.nn.Module):
 class UNet2DConditionModelHSpace(UNet2DConditionModel):
     def __init__(self, *args, **kwargs):
         super().__init__(cross_attention_dim=768)
-        self.delta_block = DeltaBlock(128*8*8, 4*128*8*8)
+        self.deltablock_flag = False
         # for matching SD1.4
         # super().__init__(*args, **kwargs)
+    
+    def set_deltablock(self):
+        setattr(self, "deltablock", DeltaBlock(1280, 4*1280, 0.0))
+        self.deltablock = self.deltablock.to("cuda").to(torch.float16)
+        setattr(self, "deltablock_flag", True)
         
     def forward(
             self,
@@ -367,8 +372,10 @@ class UNet2DConditionModelHSpace(UNet2DConditionModel):
             
             # storing the h space after the mid block, before up sampling blocks
             h_space = sample
-            delta_h = self.deltablock(h_space)
-            h_space += delta_h
+            if self.deltablock_flag:
+                delta_h = self.deltablock(h_space)
+                h_space += delta_h
+                print(delta_h)
             if is_controlnet:
                 sample = sample + mid_block_additional_residual
 

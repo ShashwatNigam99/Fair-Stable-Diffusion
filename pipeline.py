@@ -4,7 +4,7 @@ import torch
 from pathlib import Path
 from utils import save_images_and_hspace
 import time
-PATH = "stable-diffusion-v1-4"
+PATH = "/home/okara7/Desktop/Fair-Stable-Diffusion/stable-diffusion-v1-5"
 PATH = Path(PATH).expanduser()
 
 def setup_hspace_stable_diffusion(PATH):
@@ -21,8 +21,14 @@ def setup_hspace_stable_diffusion(PATH):
     hspace_unet = UNet2DConditionModelHSpace.from_pretrained(
         PATH, 
         subfolder = "unet",
-        torch_dtype=torch.float16 
+        torch_dtype=torch.float16,
+        strict=False
     )
+    print('here')
+    hspace_unet.set_deltablock()
+    hspace_unet = hspace_unet.to("cuda")
+    hspace_unet.deltablock = hspace_unet.deltablock.to("cuda").to(torch.float16)
+
     hspace_pipe = StableDiffusionPipelineHspace.from_pretrained(
         PATH, 
         torch_dtype = torch.float16, 

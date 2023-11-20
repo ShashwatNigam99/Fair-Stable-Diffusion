@@ -21,9 +21,14 @@ def setup_hspace_stable_diffusion(PATH):
     hspace_unet = UNet2DConditionModelHSpace.from_pretrained(
         PATH, 
         subfolder = "unet",
-        torch_dtype=torch.float16 
+        torch_dtype=torch.float16,
+        strict=False
     )
-    freeze_params(hspace_unet)
+    print('here')
+    hspace_unet.set_deltablock()
+    hspace_unet = hspace_unet.to("cuda")
+    hspace_unet.deltablock = hspace_unet.deltablock.to("cuda").to(torch.float16)
+
     hspace_pipe = StableDiffusionPipelineHspace.from_pretrained(
         PATH, 
         torch_dtype = torch.float16, 
@@ -82,7 +87,7 @@ if __name__=='__main__':
             num_inference_steps = config["num_inference_steps"],
             num_images_per_prompt = config["num_images_per_prompt"]    
         )
-    
+        # once it's ready, it's done
         prob_dist = classify(images)
         uniform_dist = torch.ones(images.shape[0], 2) * 0.5
         kl_divergence = compute_kl_divergence(prob_dist, uniform_dist)
