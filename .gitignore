@@ -161,3 +161,4 @@ cython_debug/
 
 ./outputs/hspace/*
 *.pt
+./stable-diffusion-v1-5/*
