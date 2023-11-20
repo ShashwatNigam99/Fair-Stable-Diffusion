@@ -27,9 +27,9 @@ def setup_hspace_stable_diffusion(PATH):
         strict=False
     )
     # print('here')
-    # hspace_unet.set_deltablock()
-    # hspace_unet = hspace_unet.to("cuda")
-    # hspace_unet.deltablock = hspace_unet.deltablock.to("cuda").to(torch.float16)
+    hspace_unet.set_deltablock()
+    hspace_unet = hspace_unet.to("cuda")
+    hspace_unet.deltablock = hspace_unet.deltablock.to("cuda").to(torch.float16)
 
     hspace_pipe = StableDiffusionPipelineHspace.from_pretrained(
         PATH, 
