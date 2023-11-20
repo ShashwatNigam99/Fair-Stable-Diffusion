@@ -4,9 +4,94 @@ from diffusers.models.unet_2d_condition import UNet2DConditionOutput
 
 from typing import Dict, Optional, Tuple, Union, Any
 
+# PyTorch 1.7 has SiLU, but we support PyTorch 1.5.
+class SiLU(torch.nn.Module):
+    def forward(self, x):
+        return x * torch.sigmoid(x)
+
+
+class GroupNorm32(torch.nn.GroupNorm):
+    def forward(self, x):
+        return super().forward(x.float()).type(x.dtype)
+
+
+def conv_nd(dims, *args, **kwargs):
+    """
+    Create a 1D, 2D, or 3D convolution module.
+    """
+    if dims == 1:
+        return torch.nn.Conv1d(*args, **kwargs)
+    elif dims == 2:
+        return torch.nn.Conv2d(*args, **kwargs)
+    elif dims == 3:
+        return torch.nn.Conv3d(*args, **kwargs)
+    raise ValueError(f"unsupported dimensions: {dims}")
+
+
+def linear(*args, **kwargs):
+    """
+    Create a linear module.
+    """
+    return torch.nn.Linear(*args, **kwargs)
+
+def normalization(channels):
+    """
+    Make a standard normalization layer.
+
+    :param channels: number of input channels.
+    :return: an nn.Module for normalization.
+    """
+    return GroupNorm32(32, channels)
+
+
+class DeltaBlock(torch.nn.Module):
+    def __init__(
+        self,
+        channels,
+        emb_channels,
+        dropout,
+        dims=2,
+    ):
+        super().__init__()
+        self.channels = channels
+        self.emb_channels = emb_channels
+        self.dropout = dropout
+        self.out_channels = channels
+
+        self.in_layers = torch.nn.Sequential(
+            normalization(channels),
+            torch.nn.SiLU(),
+            conv_nd(dims, channels, self.out_channels, 1, padding=0),
+        )
+
+        self.emb_layers = torch.nn.Sequential(
+            torch.nn.SiLU(),
+            linear(
+                emb_channels,
+                self.out_channels,
+            ),
+        )
+        self.out_layers = torch.nn.Sequential(
+            normalization(self.out_channels),
+            torch.nn.SiLU(),
+            torch.nn.Dropout(p=dropout),
+            conv_nd(dims, self.out_channels, self.out_channels, 1, padding=0)
+            ,
+        )
+
+
+    def forward(self, x):
+        h = self.in_layers(x)
+        h = self.out_layers(h)
+        return h
+
+
+
 class UNet2DConditionModelHSpace(UNet2DConditionModel):
     def __init__(self, *args, **kwargs):
+        ch = int(self.channel_mult[0] * self.model_channels)
         super().__init__(cross_attention_dim=768)
+        self.delta_block = DeltaBlock()
         # for matching SD1.4
         # super().__init__(*args, **kwargs)
         
@@ -283,7 +368,8 @@ class UNet2DConditionModelHSpace(UNet2DConditionModel):
             
             # storing the h space after the mid block, before up sampling blocks
             h_space = sample
-            
+            delta_h = self.deltablock(h_space)
+            h_space += delta_h
             if is_controlnet:
                 sample = sample + mid_block_additional_residual
 
