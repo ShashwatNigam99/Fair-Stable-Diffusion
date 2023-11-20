@@ -89,9 +89,8 @@ class DeltaBlock(torch.nn.Module):
 
 class UNet2DConditionModelHSpace(UNet2DConditionModel):
     def __init__(self, *args, **kwargs):
-        ch = int(self.channel_mult[0] * self.model_channels)
         super().__init__(cross_attention_dim=768)
-        self.delta_block = DeltaBlock()
+        self.delta_block = DeltaBlock(128*8*8, 4*128*8*8)
         # for matching SD1.4
         # super().__init__(*args, **kwargs)
         
