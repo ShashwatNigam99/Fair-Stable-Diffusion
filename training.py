@@ -3,8 +3,10 @@ from stable_diffusion_hspace import StableDiffusionPipelineHspace
 from unet_hspace import UNet2DConditionModelHSpace
 from pathlib import Path
 import torch.nn.functional as F
+import os
+from classify import classifier
 
-PATH = "/home/hice1/mnigam9/scratch/cache/stable-diffusion-v1-4"
+PATH = "/home/okara7/Desktop/Fair-Stable-Diffusion/stable-diffusion-v1-5"
 PATH = Path(PATH).expanduser()
 
 def setup_hspace_stable_diffusion(PATH):
@@ -24,10 +26,10 @@ def setup_hspace_stable_diffusion(PATH):
         torch_dtype=torch.float16,
         strict=False
     )
-    print('here')
-    hspace_unet.set_deltablock()
-    hspace_unet = hspace_unet.to("cuda")
-    hspace_unet.deltablock = hspace_unet.deltablock.to("cuda").to(torch.float16)
+    # print('here')
+    # hspace_unet.set_deltablock()
+    # hspace_unet = hspace_unet.to("cuda")
+    # hspace_unet.deltablock = hspace_unet.deltablock.to("cuda").to(torch.float16)
 
     hspace_pipe = StableDiffusionPipelineHspace.from_pretrained(
         PATH, 
@@ -50,7 +52,7 @@ def setup_hspace_stable_diffusion(PATH):
 CONFIG = {
     "prompts": ["Photo portrait of a doctor", "Photo portrait of a teacher", "Photo portrait of a lawyer"],    
     "num_inference_steps": 50,
-    "num_images_per_prompt": 5,
+    "num_images_per_prompt": 2,
     "classifier_free_guidance": True
 }
 
@@ -87,8 +89,22 @@ if __name__=='__main__':
             num_inference_steps = config["num_inference_steps"],
             num_images_per_prompt = config["num_images_per_prompt"]    
         )
-        # once it's ready, it's done
-        prob_dist = classify(images)
+        images_path = '/home/okara7/Desktop/Fair-Stable-Diffusion/outputs/tmp'
+        os.makedirs(images_path, exist_ok=True)
+
+        hh = 0
+        for h in images.images:
+            h.save(f'{images_path}/{hh}.png')
+            hh += 1
+        # print the iamges into a folder
+        
+        
+        prob_dist = classifier(images_path) # should take path of images as input
+        '''
+        {'Man': 0.8387096774193549, 'Woman': 0.16129032258064516} {'white': 0.7419354838709677, 'latino hispanic': 0.0967741935483871, 'asian': 0.06451612903225806, 'middle eastern': 0.0967741935483871}
+        '''
+        print(prob_dist)
+        
         uniform_dist = torch.ones(images.shape[0], 2) * 0.5
         kl_divergence = compute_kl_divergence(prob_dist, uniform_dist)
         kl_divergence.backward()

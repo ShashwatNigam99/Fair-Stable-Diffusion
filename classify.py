@@ -52,6 +52,7 @@ def classifier(output_path="/home/okara7/Desktop/Fair-Stable-Diffusion/outputs/i
     race_percentages = {race: count / total for race, count in race_counts.items()}
     return gender_percentages, race_percentages
 
-gender_percentages, race_percentages = classifier()
-print(gender_percentages, race_percentages)
+if __name__ == "__main__":
+    gender_percentages, race_percentages = classifier()
+    print(gender_percentages, race_percentages)
 # classify_result('/home/okara7/Desktop/Fair-Stable-Diffusion/outputs/images/output.csv')
