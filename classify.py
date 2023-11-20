@@ -15,13 +15,13 @@ def classifier():
     os.environ.setdefault("DEEPFACE_HOME", "/home/okara7/Desktop/Fair-Stable-Diffusion")
     local_path = ""
     Path(f'{local_path}.deepface/weights').mkdir(parents=True, exist_ok=True)
-    OUTPUTS = "./outputs/images"
+    OUTPUTS = "/home/okara7/Desktop/Fair-Stable-Diffusion/outputs/images"
     OUTPUTS = Path(OUTPUTS).expanduser()
     output = []
     output.append(required_parameters+['image_path'])
     for img in OUTPUTS.iterdir():
         img_path = str(img)
-        print(img_path)
+
         try:
             objs = classify(img_path)[0]
         except:
@@ -32,24 +32,26 @@ def classifier():
             line.append(objs[param])
         line.append(img_path)
         output.append(line)
-    # Open the file in write mode
-    with open(os.path.join(OUTPUTS,'output.csv'), 'w') as file:
-        writer = csv.writer(file)
-        # Write all rows at once
-        writer.writerows(output)
-        
-def classify_result(file_path):
-    data = pd.read_csv(file_path)
-    # Calculate percentage distribution for 'dominant_gender'
-    gender_distribution = data['dominant_gender'].value_counts(normalize=True).to_dict()
-    # Calculate percentage distribution for 'dominant_race'
-    race_distribution = data['dominant_race'].value_counts(normalize=True).to_dict()
-    # Convert to percentage format (optional)
-    gender_distribution_percent = {k: v * 100 for k, v in gender_distribution.items()}
-    race_distribution_percent = {k: v * 100 for k, v in race_distribution.items()}
-    print("Gender Distribution (in %):", gender_distribution_percent)
-    print("Race Distribution (in %):", race_distribution_percent)
-    return gender_distribution_percent, race_distribution_percent
+    headers = output[0]
+    rows = output[1:]
+    # Identify the indices for the relevant columns
+    gender_index = headers.index('dominant_gender')
+    race_index = headers.index('dominant_race')
+    # Initialize dictionaries to count occurrences
+    gender_counts = {}
+    race_counts = {}
+    # Count occurrences for each attribute
+    for row in rows:
+        gender = row[gender_index]
+        race = row[race_index]
+        gender_counts[gender] = gender_counts.get(gender, 0) + 1
+        race_counts[race] = race_counts.get(race, 0) + 1
+    # Convert counts to percentages
+    total = len(rows)
+    gender_percentages = {gender: count / total for gender, count in gender_counts.items()}
+    race_percentages = {race: count / total for race, count in race_counts.items()}
+    return gender_percentages, race_percentages
 
-classifier()
-classify_result('/home/okara7/Desktop/Fair-Stable-Diffusion/outputs/images/output.csv')
+gender_percentages, race_percentages = classifier()
+print(gender_percentages, race_percentages)
+# classify_result('/home/okara7/Desktop/Fair-Stable-Diffusion/outputs/images/output.csv')
