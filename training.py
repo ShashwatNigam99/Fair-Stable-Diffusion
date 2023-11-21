@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import os
 from classify import classifier
 
-PATH = "/home/okara7/Desktop/Fair-Stable-Diffusion/stable-diffusion-v1-5"
+PATH = "/home/hice1/mnigam9/scratch/cache/stable-diffusion-v1-5"
 PATH = Path(PATH).expanduser()
 
 def setup_hspace_stable_diffusion(PATH):
@@ -89,7 +89,7 @@ if __name__=='__main__':
             num_inference_steps = config["num_inference_steps"],
             num_images_per_prompt = config["num_images_per_prompt"]    
         )
-        images_path = '/home/okara7/Desktop/Fair-Stable-Diffusion/outputs/tmp'
+        images_path = '/home/hice1/mnigam9/scratch/cache/deltahspace'
         os.makedirs(images_path, exist_ok=True)
 
         hh = 0
@@ -105,7 +105,7 @@ if __name__=='__main__':
         '''
         print(prob_dist)
         
-        uniform_dist = torch.ones(images.shape[0], 2) * 0.5
+        uniform_dist = torch.ones(images.images[0].shape[0], 2) * 0.5
         kl_divergence = compute_kl_divergence(prob_dist, uniform_dist)
         kl_divergence.backward()
         optimizer.step()

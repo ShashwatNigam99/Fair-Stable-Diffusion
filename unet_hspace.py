@@ -12,7 +12,7 @@ class SiLU(torch.nn.Module):
 
 class GroupNorm32(torch.nn.GroupNorm):
     def forward(self, x):
-        return super().forward(x.float()).type(x.dtype)
+        return super().forward(x).type(x.dtype)
 
 
 def conv_nd(dims, *args, **kwargs):
@@ -81,6 +81,7 @@ class DeltaBlock(torch.nn.Module):
 
 
     def forward(self, x):
+        # breakpoint()
         h = self.in_layers(x)
         h = self.out_layers(h)
         return h
@@ -375,7 +376,7 @@ class UNet2DConditionModelHSpace(UNet2DConditionModel):
             if self.deltablock_flag:
                 delta_h = self.deltablock(h_space)
                 h_space += delta_h
-                print(delta_h)
+                # print(delta_h)
             if is_controlnet:
                 sample = sample + mid_block_additional_residual
 
