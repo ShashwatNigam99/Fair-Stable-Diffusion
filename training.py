@@ -4,9 +4,11 @@ from unet_hspace import UNet2DConditionModelHSpace
 from pathlib import Path
 import torch.nn.functional as F
 import os
-from classify import classifier
-
-PATH = "/home/hice1/mnigam9/scratch/cache/stable-diffusion-v1-5"
+# from clip_classification import classifier
+from PIL import Image
+from transformers import CLIPProcessor, CLIPModel
+from clip_classification import classify
+PATH = "stable-diffusion-v1-5"
 PATH = Path(PATH).expanduser()
 
 def setup_hspace_stable_diffusion(PATH):
@@ -19,7 +21,6 @@ def setup_hspace_stable_diffusion(PATH):
     Returns:
         A StableDiffusionPipelineHspace object configured with the pre-trained UNet2DConditionModelHSpace model.
     """
-    
     hspace_unet = UNet2DConditionModelHSpace.from_pretrained(
         PATH, 
         subfolder = "unet",
@@ -89,7 +90,7 @@ if __name__=='__main__':
             num_inference_steps = config["num_inference_steps"],
             num_images_per_prompt = config["num_images_per_prompt"]    
         )
-        images_path = '/home/hice1/mnigam9/scratch/cache/deltahspace'
+        images_path = "outputs2/images"
         os.makedirs(images_path, exist_ok=True)
 
         hh = 0
@@ -99,7 +100,7 @@ if __name__=='__main__':
         # print the iamges into a folder
         
         
-        prob_dist = classifier(images_path) # should take path of images as input
+        prob_dist = classify(images_path) # should take path of images as input
         '''
         {'Man': 0.8387096774193549, 'Woman': 0.16129032258064516} {'white': 0.7419354838709677, 'latino hispanic': 0.0967741935483871, 'asian': 0.06451612903225806, 'middle eastern': 0.0967741935483871}
         '''
