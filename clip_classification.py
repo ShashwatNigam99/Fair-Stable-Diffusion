@@ -24,14 +24,14 @@ OUTPUTS = "outputs2/images"
 OUTPUTS = Path(OUTPUTS).expanduser()
 
 def load_image(image_path):
-    return Image.open(str(img))
+    return Image.open(str(image_path))
 
 def classify(image_path): 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = Classifier("clip-vit-base-patch32", device)
-
+    path = Path(image_path)
     image_names, images = [], []
-    for img in OUTPUTS.iterdir():
+    for img in path.rglob('*'):
         image_names.append(str(img))
         images.append(load_image(img))
 

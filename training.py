@@ -90,7 +90,7 @@ if __name__=='__main__':
             num_inference_steps = config["num_inference_steps"],
             num_images_per_prompt = config["num_images_per_prompt"]    
         )
-        images_path = "outputs2/images"
+        images_path = "outputs2/images/"
         os.makedirs(images_path, exist_ok=True)
 
         hh = 0
