@@ -4,11 +4,13 @@ from transformers import CLIPProcessor, CLIPModel
 import torch
 from pathlib import Path
 import numpy as np
+
 class Classifier(torch.nn.Module):
     def __init__(self, model_name_or_path, device='cpu'):
         super().__init__()
         self.model = CLIPModel.from_pretrained(model_name_or_path).to(device)
         self.processor = CLIPProcessor.from_pretrained(model_name_or_path)
+        # why are we setting this to true?
         for param in self.model.parameters():
             param.requires_grad = True
         
@@ -30,7 +32,7 @@ def load_image(image_path):
 
 def classify(images): 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = Classifier("clip-vit-base-patch32", device)
+    model = Classifier("/home/hice1/mnigam9/scratch/cache/clip-vit-large-patch14", device)
     # path = Path(image_path)
 
     # image_names, images = [], []

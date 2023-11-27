@@ -373,9 +373,10 @@ class UNet2DConditionModelHSpace(UNet2DConditionModel):
             
             # storing the h space after the mid block, before up sampling blocks
             h_space = sample
+            breakpoint()
             if self.deltablock_flag:
-                delta_h = self.deltablock(h_space)
-                h_space += delta_h
+                delta_h = self.deltablock(sample)
+                sample += delta_h
                 # print(delta_h)
             if is_controlnet:
                 sample = sample + mid_block_additional_residual

@@ -3,13 +3,54 @@ from stable_diffusion_hspace import StableDiffusionPipelineHspace
 from unet_hspace import UNet2DConditionModelHSpace
 from pathlib import Path
 import torch.nn.functional as F
+import torch.nn as nn
 import os
 # from clip_classification import classifier
 from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
-from clip_classification import classify
-PATH = "stable-diffusion-v1-5"
+from torchviz import make_dot
+
+PATH = "/home/hice1/mnigam9/scratch/cache/stable-diffusion-v1-5"
 PATH = Path(PATH).expanduser()
+
+
+class Classifier(torch.nn.Module):
+    def __init__(self, model_name_or_path, device='cpu'):
+        super().__init__()
+        self.model = CLIPModel.from_pretrained(model_name_or_path).to(device)
+        self.processor = CLIPProcessor.from_pretrained(model_name_or_path)
+        # why are we setting this to true?
+        for param in self.model.parameters():
+            param.requires_grad = True
+        
+    def forward(self, text, images):
+        inputs = self.processor(text=text, images=images, return_tensors="pt", padding=True)
+        inputs.to(self.model.device)
+        outputs = self.model(**inputs)
+        return outputs
+    
+    def classify(self, outputs):
+        probs = outputs.logits_per_image.softmax(dim=1)
+        return probs
+
+
+
+# binary classification loss involving computing the KL divergence between the generated distribution and the target distribution
+def classify_loss(class_model, images): 
+    text_classes = ["photo of a man", "photo of a woman" ]
+    # prompts = ["a photo of an Asian","a photo of a caucasian", "a photo of a black person", "a photo of a latin American"]
+    outputs = class_model.forward(text_classes, images)
+    # outputs_race = class_model.forward(prompts, images)
+    prob_dist = class_model.classify(outputs)
+
+    prob_dist = torch.sum(prob_dist, dim=0)
+
+    prob_dist /= torch.sum(prob_dist) 
+    
+    loss = prob_dist[0] * torch.log(2 * prob_dist[0]) + prob_dist[1] * torch.log(2* prob_dist[1])
+    
+    return loss
+
 
 def setup_hspace_stable_diffusion(PATH):
     """
@@ -31,7 +72,8 @@ def setup_hspace_stable_diffusion(PATH):
     hspace_unet.set_deltablock()
     hspace_unet = hspace_unet.to("cuda")
     hspace_unet.deltablock = hspace_unet.deltablock.to("cuda").to(torch.float16)
-
+    freeze_params(hspace_unet)
+    
     hspace_pipe = StableDiffusionPipelineHspace.from_pretrained(
         PATH, 
         torch_dtype = torch.float16, 
@@ -51,9 +93,9 @@ def setup_hspace_stable_diffusion(PATH):
     return hspace_pipe
 
 CONFIG = {
-    "prompts": ["Photo portrait of a doctor"],    
-    "num_inference_steps": 50,
-    "num_images_per_prompt": 18,
+    "prompts": ["Photo portrait of a doctor", "Photo portrait of a teacher", "Photo portrait of a lawyer"],    
+    "num_inference_steps": 10,
+    "num_images_per_prompt": 8,
     "classifier_free_guidance": True
 }
 
@@ -66,9 +108,11 @@ def get_config():
 
 def freeze_params(unet):
     for param in unet.parameters():
-        param.requires_grad = True
+        param.requires_grad = True # why change this to true?
     for param in unet.deltablock.parameters():
+        nn.init.zeros_(param)
         param.requires_grad = True
+        
 
 def compute_kl_divergence(generated_distribution, target_distribution):
     target_distribution = target_distribution / target_distribution.sum()
@@ -80,41 +124,25 @@ if __name__=='__main__':
     
     hspace_pipe = setup_hspace_stable_diffusion(PATH)
     config = get_config()
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')   
+    class_model = Classifier("/home/hice1/mnigam9/scratch/cache/clip-vit-large-patch14", device)
 
-    optimizer = torch.optim.SGD(hspace_pipe.unet.deltablock.parameters(), lr=10000, momentum=0.9)
+    optimizer = torch.optim.SGD(hspace_pipe.unet.deltablock.parameters(), lr=0.01, momentum=0.9)
     hspace_pipe.unet.deltablock.train()
     for i in range(100):
         optimizer.zero_grad()
+        breakpoint()
         images, hspace = hspace_pipe(
             prompt = config["prompts"],
             num_inference_steps = config["num_inference_steps"],
             num_images_per_prompt = config["num_images_per_prompt"]    
         )
-        # images_path = "outputs2/images/"
-        # os.makedirs(images_path, exist_ok=True)
-
-        # hh = 0
-        # for h in images.images:
-        #     h.save(f'{images_path}/{hh}.png')
-        #     hh += 1
-        # print the iamges into a folder
         
-        
-        prob_dist = classify(images.images) # should take path of images as input
-        # uniform_dist = torch.ones(1, 2).to("cuda") * 0.5
-        # torch.sum(prob_dist).backward()
-        # optimizer.step()
-        '''
-        {'Man': 0.8387096774193549, 'Woman': 0.16129032258064516} {'white': 0.7419354838709677, 'latino hispanic': 0.0967741935483871, 'asian': 0.06451612903225806, 'middle eastern': 0.0967741935483871}
-        '''
+        loss = classify_loss(class_model, images.images) 
         # print(prob_dist)
-        # prob_dist = torch.tensor(prob_dist).to("cuda")
-        # uniform_dist = torch.ones(1, 2).to("cuda") * 0.5
-        loss = prob_dist[0] * torch.log(2 * prob_dist[0]) + prob_dist[1] * torch.log(2* prob_dist[1])
-        # kl_divergence = compute_kl_divergence(prob_dist, uniform_dist)
-        
+        # loss = prob_dist[0] * torch.log(2 * prob_dist[0]) + prob_dist[1] * torch.log(2* prob_dist[1])
+        dot = make_dot(loss, params=dict(list(hspace_pipe.unet.named_parameters())))
+        dot.render('computational_graph', format='png')  # Saves the graph as a PNG image
         loss.backward()
         optimizer.step()
-        for param,name in zip(hspace_pipe.unet.deltablock.parameters(), hspace_pipe.unet.deltablock.named_parameters()):
-            print(name, param)
         print(loss)
