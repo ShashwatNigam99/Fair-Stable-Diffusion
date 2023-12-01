@@ -61,21 +61,26 @@ class DeltaBlock(torch.nn.Module):
         self.in_layers = torch.nn.Sequential(
             normalization(channels),
             torch.nn.SiLU(),
-            conv_nd(dims, channels, self.out_channels, 1, padding=0),
+            conv_nd(dims, channels, self.emb_channels, 1, padding=0),
         )
 
         self.emb_layers = torch.nn.Sequential(
             torch.nn.SiLU(),
             linear(
-                emb_channels,
-                self.out_channels,
+                self.emb_channels,
+                self.emb_channels,
+            ),
+            torch.nn.SiLU(),
+            linear(
+                self.emb_channels,
+                self.emb_channels,
             ),
         )
         self.out_layers = torch.nn.Sequential(
             normalization(self.out_channels),
             torch.nn.SiLU(),
             torch.nn.Dropout(p=dropout),
-            conv_nd(dims, self.out_channels, self.out_channels, 1, padding=0)
+            conv_nd(dims, self.emb_channels, self.out_channels, 1, padding=0)
             ,
         )
 
@@ -95,10 +100,11 @@ class UNet2DConditionModelHSpace(UNet2DConditionModel):
         # for matching SD1.4
         # super().__init__(*args, **kwargs)
     
-    def set_deltablock(self):
+    def set_deltablock(self, latent_lambda=0.1):
         setattr(self, "deltablock", DeltaBlock(1280, 4*1280, 0.0))
         self.deltablock = self.deltablock.to("cuda").to(torch.float16)
         setattr(self, "deltablock_flag", True)
+        self.latent_lambda = latent_lambda
         
     def forward(
             self,
@@ -376,7 +382,7 @@ class UNet2DConditionModelHSpace(UNet2DConditionModel):
             breakpoint()
             if self.deltablock_flag:
                 delta_h = self.deltablock(sample)
-                sample += delta_h
+                sample += self.latent_lambda * delta_h
                 # print(delta_h)
             if is_controlnet:
                 sample = sample + mid_block_additional_residual

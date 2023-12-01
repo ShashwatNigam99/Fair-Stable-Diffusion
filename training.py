@@ -10,7 +10,8 @@ from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
 from torchviz import make_dot
 
-PATH = "/home/hice1/mnigam9/scratch/cache/stable-diffusion-v1-5"
+# PATH = "/home/hice1/mnigam9/scratch/cache/stable-diffusion-v1-5"
+PATH = '/common/home/zw465/test/cachedir/stable-diffusion-v1-5'
 PATH = Path(PATH).expanduser()
 
 
@@ -52,7 +53,7 @@ def classify_loss(class_model, images):
     return loss
 
 
-def setup_hspace_stable_diffusion(PATH):
+def setup_hspace_stable_diffusion(PATH, latent_lambda):
     """
     Sets up a stable diffusion pipeline for HSpace using a pre-trained UNet2DConditionModelHSpace model.
 
@@ -69,7 +70,7 @@ def setup_hspace_stable_diffusion(PATH):
         strict=False
     )
     # print('here')
-    hspace_unet.set_deltablock()
+    hspace_unet.set_deltablock(latent_lambda)
     hspace_unet = hspace_unet.to("cuda")
     hspace_unet.deltablock = hspace_unet.deltablock.to("cuda").to(torch.float16)
     freeze_params(hspace_unet)
@@ -102,7 +103,8 @@ CONFIG = {
 def get_config():
     CONFIG["latent_dims"] = 1
     if CONFIG["classifier_free_guidance"]:
-        CONFIG["latent_dims"] = 2    
+        CONFIG["latent_dims"] = 2
+    CONFIG["latent_lambda"] = 0.4
     return CONFIG
 
 
@@ -121,11 +123,11 @@ def compute_kl_divergence(generated_distribution, target_distribution):
     return kl_div
 
 if __name__=='__main__':
-    
-    hspace_pipe = setup_hspace_stable_diffusion(PATH)
     config = get_config()
+    hspace_pipe = setup_hspace_stable_diffusion(PATH,config["latent_lambda"])
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')   
-    class_model = Classifier("/home/hice1/mnigam9/scratch/cache/clip-vit-large-patch14", device)
+    # class_model = Classifier("/home/hice1/mnigam9/scratch/cache/clip-vit-large-patch14", device)
+    class_model = Classifier("/common/home/zw465/test/cachedir/clip-vit-large-patch14", device)
 
     optimizer = torch.optim.SGD(hspace_pipe.unet.deltablock.parameters(), lr=0.01, momentum=0.9)
     hspace_pipe.unet.deltablock.train()
