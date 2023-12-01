@@ -75,6 +75,11 @@ class DeltaBlock(torch.nn.Module):
                 self.emb_channels,
                 self.emb_channels,
             ),
+            torch.nn.SiLU(),
+            linear(
+                self.emb_channels,
+                self.emb_channels,
+            ),
         )
         self.out_layers = torch.nn.Sequential(
             normalization(self.out_channels),
